@@ -24,6 +24,27 @@ class PostList(generics.ListCreateAPIView):
     def perform_create(self, serializer):
         serializer.save(poster=self.request.user)
 
+
+# Destroy Only one Post - documentation mixinis 
+class PostRetrieveDestroy(generics.RetrieveDestroyAPIView):
+    # display all the posts using query set
+    queryset = Post.objects.all()
+    # tell what serializer to use for this class
+    serializer_class = PostSerializer
+    # import permissions from the rest framework.
+    # that allow users to see the info if they are not loged in or write if they are loged in
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+
+    # delete the post based on what user is logged in.
+    def delete(self, request, *args, **kwargs):
+        post = Post.objects.filter(pk=kwargs['pk'], poster=self.request.user)
+        if post.exists():
+            return self.destroy(request, *args, **kwargs)
+        else:
+            raise ValidationError('This post isnt yours to delete.')
+
+
+
 class VoteCreate(generics.CreateAPIView, mixins.DestroyModelMixin):
     # display all the posts using query set
     queryset = Post.objects.all()
