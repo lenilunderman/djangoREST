@@ -1,8 +1,10 @@
 from django.shortcuts import render
 # imports related to rest_framework
-from rest_framework import generics, permissions
+from rest_framework import generics, permissions, mixins, status
 # import the error validation from rest
 from rest_framework.exceptions import ValidationError
+# import the response to be used inside the delete part of the api
+from rest_framework.response import Response
 # import of the .models, table Post
 from .models import Post, Vote
 # import the serializer class to be used
@@ -22,7 +24,7 @@ class PostList(generics.ListCreateAPIView):
     def perform_create(self, serializer):
         serializer.save(poster=self.request.user)
 
-class VoteCreate(generics.CreateAPIView):
+class VoteCreate(generics.CreateAPIView, mixins.DestroyModelMixin):
     # display all the posts using query set
     queryset = Post.objects.all()
     # tell what serializer to use for this class
@@ -42,3 +44,11 @@ class VoteCreate(generics.CreateAPIView):
         if self.get_queryset().exists():
             raise ValidationError('You have already voted for this post.')
         serializer.save(voter=self.request.user, post=Post.objects.get(pk=self.kwargs['pk']))
+
+    # Create the function to delete one vote
+    def delete(self, request, *args, **kwargs):
+        if self.get_queryset().exists():
+            self.get_queryset().delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        else:
+            raise ValidationError('You never voted for this post.')
